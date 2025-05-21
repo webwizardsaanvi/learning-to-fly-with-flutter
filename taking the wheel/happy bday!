@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(const MaterialApp(title: 'adding', home: MyApp()));
+  runApp(const MaterialApp(title: 'adding', home: MyApp(), debugShowCheckedModeBanner: false,));
 }
 
 class MyApp extends StatelessWidget {
@@ -50,6 +50,7 @@ class MyApp extends StatelessWidget {
     for(var i = 0; i<52; i++){
       mylisty2.add(mylisty[i % mylisty.length]);
     }
+     
           return Scaffold(
        body: Column(
          children:[
@@ -68,7 +69,8 @@ class MyApp extends StatelessWidget {
         tooltip: 'Add',
         onPressed: null,
         child: Icon(Icons.add),
-      ), 
-            );
+      ),
+    );
+          
  }
 }
