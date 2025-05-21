@@ -1,0 +1,74 @@
+import 'package:flutter/material.dart';
+
+void main() {
+  runApp(const MaterialApp(title: 'adding', home: MyApp()));
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    List<Widget> mylisty = [
+            Container(
+             child: const Text('happy',
+                            style: TextStyle(height: 0, fontSize: 50, color: Colors.white),),
+            margin: const EdgeInsets.all(10.0),
+          padding: const EdgeInsets.all(10.0),
+          color: Colors.red[700],
+          alignment: Alignment.center,
+          width: 210.0,
+          ),
+           Container(
+             child: const Text('birthday',
+                            style: TextStyle(height: 0, fontSize: 50, color: Colors.white),),
+            margin: const EdgeInsets.all(10.0),
+          padding: const EdgeInsets.all(10.0),
+          color: Colors.black,
+          alignment: Alignment.center,
+          width: 210.0,
+          ),
+           Container(
+             child: const Text('to',
+                            style: TextStyle(height: 0, fontSize: 50, color: Colors.white),),
+            margin: const EdgeInsets.all(10.0),
+          padding: const EdgeInsets.all(10.0),
+          color: Colors.red[700],
+          alignment: Alignment.center,
+          width: 210.0,
+          ),Container(
+             child: const Text('YOU!!!!!!',
+                            style: TextStyle(height: 0, fontSize: 50, color: Colors.white),),
+            margin: const EdgeInsets.all(10.0),
+          padding: const EdgeInsets.all(10.0),
+          color: Colors.grey,
+          alignment: Alignment.center,
+          width: 210.0,
+          ),];
+    List<Widget> mylisty2 = [];
+    
+    for(var i = 0; i<52; i++){
+      mylisty2.add(mylisty[i % mylisty.length]);
+    }
+          return Scaffold(
+       body: Column(
+         children:[
+           Expanded(
+        child: ListWheelScrollView(
+         itemExtent: 200,
+          //offAxisFraction: -0.7,
+          useMagnifier: true, 
+          magnification: 1.5,
+          children: mylisty2
+          ),
+             ),
+           ]
+         ),
+       floatingActionButton: const FloatingActionButton(
+        tooltip: 'Add',
+        onPressed: null,
+        child: Icon(Icons.add),
+      ), 
+            );
+ }
+}
