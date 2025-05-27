@@ -1,0 +1,23 @@
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Project Cookbook'),
+      ),
+      body: child,
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: const Color.fromARGB(255, 255, 255, 255),
+        unselectedItemColor: const Color.fromARGB(255, 255, 255, 255),
+        items: const [
+          BottomNavigationBarItem(
+              icon: Icon(Icons.arrow_back_ios_new_outlined), label: 'back'),
+          BottomNavigationBarItem(icon: Icon(Icons.source), label: 'cookbook'),
+          BottomNavigationBarItem(icon: Icon(Icons.lightbulb), label: 'lessons'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.diversity_1_outlined), label: 'friends'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.person_2_outlined), label: 'me'),
+        ],
+      ),
+    );
+  }
