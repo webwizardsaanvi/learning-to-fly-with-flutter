@@ -1,0 +1,550 @@
+it now keeps telling me to fill all fields when i click finish setup: //import 'dart:math';
+import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'supabase_client.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+class SupabaseSecureStorage implements GotrueAsyncStorage {
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+
+  @override
+  Future<String?> getItem({required String key}) async {
+    return await _secureStorage.read(key: key);
+  }
+
+  @override
+  Future<void> setItem({required String key, required String value}) async {
+    await _secureStorage.write(key: key, value: value);
+  }
+
+  @override
+  Future<void> removeItem({required String key}) async {
+    await _secureStorage.delete(key: key);
+  }
+}
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  //final securestorage = const FlutterSecureStorage();
+  
+  await Supabase.initialize(
+    url: 'https://dwsruodippeveqafomml.supabase.co', // <-- Replace with your Supabase project URL
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3c3J1b2RpcHBldmVxYWZvbW1sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg1MjMzNDIsImV4cCI6MjA2NDA5OTM0Mn0.s-tlJWfLXj5WSL0lPFld45nycVuG7Y4E4bQMBIBKVb8', // <-- Replace with your Supabase anon key  
+  
+    /*authOptions: const FlutterAuthClientOptions(
+      authFlowType: AuthFlowType.pkce,
+      autoRefreshToken: true,
+    ),
+    debug: true,
+    realtimeClientOptions: const RealtimeClientOptions(
+      logLevel: RealtimeLogLevel.info,
+    ),
+    storageOptions: const StorageClientOptions(retryAttempts: 10),
+  );*/
+    authOptions: FlutterAuthClientOptions(
+    authFlowType: AuthFlowType.pkce,
+    pkceAsyncStorage: SupabaseSecureStorage(),
+    ),
+    realtimeClientOptions: const RealtimeClientOptions(
+      logLevel: RealtimeLogLevel.info,
+    ),
+    debug: true,
+  );
+  final storage = FlutterSecureStorage();
+  await storage.deleteAll();
+
+  runApp(const MyApp());
+  
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Project Cookbook',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color.fromARGB(255, 37, 50, 43),
+        ),
+      ),
+      //home: const MyHomePage(title: 'cookbooking'),
+      home: AuthPage(),
+      routes: {
+        '/home': (context) => const MyHomePage(title: 'cookbooking'),
+        '/auth': (context) => const AuthPage(),
+        '/complete-profile': (context) => const CompleteProfile(),
+      },
+    );
+  }
+}
+
+class MyHomePage extends StatefulWidget {
+  const MyHomePage({super.key, required this.title});
+  final String title;
+
+  @override
+  State<MyHomePage> createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage> {
+  @override
+  Widget build(BuildContext context) {
+    return const MyNavScaffold();
+  }
+}
+
+class AuthPage extends StatefulWidget {
+  const AuthPage({super.key});
+
+  @override
+  AuthPageState createState() => AuthPageState();
+}
+
+class AuthPageState extends State<AuthPage> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool isLogin = true;
+
+  // All your async logic must be inside a method
+  Future<void> handleAuth() async {
+    try {
+      if (isLogin) {
+        final response = await SupabaseClientInstance.client.auth.signInWithPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
+
+        if (!mounted) return;
+
+        if (response.session != null) {
+          Navigator.pushReplacementNamed(context, '/home');
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Sign in failed')),
+          );
+        }
+      } else {
+        final response = await SupabaseClientInstance.client.auth.signUp(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
+
+        if (!mounted) return;
+
+        if (response.session != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Sign up successful!')),
+          );
+          Navigator.pushReplacementNamed(context, '/complete-profile');
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Sign up failed: ${response.user}')),
+          );
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // This is your widget tree; no executable code here, only UI
+    return Scaffold(
+      appBar: AppBar(title: Text(isLogin ? 'Sign In' : 'Sign Up')),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            TextField(
+              controller: _emailController,
+              decoration: const InputDecoration(labelText: 'Email'),
+            ),
+            TextField(
+              controller: _passwordController,
+              decoration: const InputDecoration(labelText: 'Password'),
+              obscureText: true,
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: handleAuth, // call the async method on button press
+              child: Text(isLogin ? 'Sign In' : 'Sign Up'),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  isLogin = !isLogin; // toggle between login/signup
+                });
+              },
+              child: Text(
+                isLogin
+                    ? "Don't have an account? Sign up"
+                    : "Already have an account? Sign in",
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  
+}
+}
+class CompleteProfile extends StatefulWidget{
+  const CompleteProfile({super.key});
+
+  @override
+  State<CompleteProfile> createState() => _CompleteProfileState();
+}
+class _CompleteProfileState extends State<CompleteProfile> {
+  final supabase = SupabaseClientInstance.client;
+  final TextEditingController _usernameController= TextEditingController();
+  String? _selectedAvatar;
+  List<String> avatarOptions = [];
+  @override
+  void initState() {
+    super.initState();
+    // Load avatar options from Supabase
+    loadAvatarOptions();
+  }
+  Future<void> loadAvatarOptions() async {
+  try {
+    //final result = await supabase.storage.from('avatars').list(path: '');
+    
+  /*  final result = await supabase.storage.from('avatars').list(path: '');
+    debugPrint('Result: $result');
+    debugPrint(result.map((e) => e.name).toString());
+
+    for (final file in result) {
+    debugPrint('📁 File: ${file.name}, Path: ${file.name}');
+  } // see what’s actually being returned
+    // Log or show the list of items
+    if (result.isEmpty) {
+  debugPrint('😩 No files found.');
+} */
+final storage = Supabase.instance.client.storage;
+debugPrint("Fetching from: ${storage.url} | Bucket: avatars");
+
+
+final result = await supabase.storage.from('avatars').list(path: '/');
+//final response = await supabase.storage.from('avatars').download('mwaha.png');
+//print(response.runtimeType); // just to see what you get
+debugPrint("Fetched ${result.length} items:");
+  debugPrint('File name: ${result[1].name}');
+  debugPrint('Full path: ${result[1].name}');
+
+for (final file in result) {
+  print('📸 Found: ${file.name}');
+}
+
+
+for (final item in result) {
+  debugPrint("📦 ${item.name}");
+}// Redact if sharing online // Redact if sharing online
+    if (!mounted) return;
+
+    setState(() {
+      avatarOptions = result.map((item) => item.name).toList();
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Avatars loaded successfully!')),
+    );
+  } catch (e) {
+    debugPrint('Error loading avatars: $e'); // Print to console
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading avatars: $e')),
+      );
+    }
+  }
+}
+  
+  Future<void> _completeProfile() async {
+    final userID = SupabaseClientInstance.client.auth.currentUser?.id;
+    final username = _usernameController.text.trim();
+    if (userID == null || username.isEmpty || _selectedAvatar == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all fields')),
+      );
+      return;
+    }
+    await SupabaseClientInstance.client.from('profiles').upsert({
+      'id': userID,
+      'username': username,
+      'avatar_url': _selectedAvatar,
+    });
+    //go to main app screen
+    Navigator.pushReplacementNamed(context, '/home');
+  }
+  @override
+  Widget build(BuildContext context){
+    return Scaffold(
+      appBar: AppBar(title: Text('Complete Your Profile')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(children: [
+          TextField(
+            controller: _usernameController,
+            decoration: const InputDecoration(labelText: 'Username'),
+
+          ),
+          const SizedBox(height: 100),
+          Text('Pick an Avatar:'),
+    Expanded(
+      child: GridView.count(
+        crossAxisCount: 4,
+        children: avatarOptions.map((avatar) {
+          
+          final url = SupabaseClientInstance.client.storage.from('avatars').getPublicUrl(avatar);
+          final isSelected = _selectedAvatar == avatar;
+          debugPrint('Avatar URL: $url'); // Log the URL for debugging
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedAvatar = avatar;
+              });
+            },
+            child: Container(
+              margin: const EdgeInsets.all(8.0),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: isSelected ? Colors.blueAccent : Colors.transparent,
+                  width: 3,
+                ),
+                borderRadius: BorderRadius.circular(50),
+              ),
+            child: CircleAvatar(
+              backgroundImage: NetworkImage(url),
+              radius: 50,
+              backgroundColor: _selectedAvatar == avatar
+                  ? Colors.blueAccent.withValues(alpha: 0.5)
+                  : Colors.transparent,
+            ),
+            ),
+          );
+        }).toList(),
+      ),
+    ),
+            ElevatedButton(
+              onPressed: _completeProfile,
+              child: Text('Finish Setup')
+            ),
+        ],),
+
+      ),
+    );
+  }
+}
+/*for some reason having this comment get's rid of an error help (￣—￣|||) */
+class MyNavScaffold extends StatefulWidget {
+  const MyNavScaffold({super.key});
+
+  @override
+  State<MyNavScaffold> createState() => _MyNavScaffoldState();
+}
+
+class _MyNavScaffoldState extends State<MyNavScaffold> {
+  int _selectedIndex = 1;
+
+  final List<IconData> _icons = [
+    Icons.arrow_back_ios_new_outlined,
+    Icons.source,
+    Icons.lightbulb,
+    Icons.diversity_1_outlined,
+    Icons.person_2_outlined,
+  ];
+
+  final List<String> _labels = [
+    'back',
+    'cookbook',
+    'lessons',
+    'friends',
+    'me',
+  ];
+
+  final List<Widget> _pages = [
+    Placeholder(), // Not used, dummy
+    CookbookPage(),
+    LessonsPage(),
+    FriendsPage(),
+    MePage(),
+  ];
+
+  void _onItemTapped(int index) {
+    if (index == 0) {
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Nothing to go back to!')),
+        );
+      }
+    } else {
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Project Cookbook')),
+      body: _pages[_selectedIndex],
+      bottomNavigationBar: Container(
+        color: const Color.fromARGB(255, 37, 50, 43),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: List.generate(_icons.length, (index) {
+            final isSelected = index == _selectedIndex;
+            return GestureDetector(
+              onTap: () => _onItemTapped(index),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 5),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _icons[index],
+                      color: index == 0 ? Colors.white : (isSelected ? Colors.white : Colors.grey),
+                      size: 32,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _labels[index],
+                      style: TextStyle(
+                        color: index == 0 ? Colors.white : (isSelected ? Colors.white : Colors.grey),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ),
+      ),
+    );
+  }
+}
+
+// Your content pages below
+class CookbookPage extends StatelessWidget {
+  const CookbookPage({super.key});
+  final List<Map<String, String>> recipes = const[
+    {'title': 'Recipe 1', 'description': 'Description of Recipe 1', 'image': ''},
+    {'title': 'Chili Paneer', 'description': 'Spicy and tangy paneer dish', 'image': ''},
+    {'title': 'Berry Smoothie', 'description': 'Refreshing and sweet', 'image': ''},
+    {'title': 'Recipe 3', 'description': 'Description of Recipe 3', 'image': ''},
+    
+    {'title': 'Chili Paneer', 'description': 'Spicy and tangy paneer dish', 'image': ''},
+    {'title': 'Berry Smoothie', 'description': 'Refreshing and sweet', 'image': ''},
+    {'title': 'Recipe 3', 'description': 'Description of Recipe 3', 'image': ''},
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Cookbook')),
+      body: Padding(
+  padding: const EdgeInsets.all(16.0),
+  child: GridView.builder(
+    itemCount: recipes.length,
+    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: 2,
+      crossAxisSpacing: 12,
+      mainAxisSpacing: 12,
+      childAspectRatio: 1, // Keeps them square
+    ),
+    itemBuilder: (context, index) {
+      final recipe = recipes[index];
+      return GestureDetector(
+        onTap: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Tapped on ${recipe['title']}')),
+          );
+        },
+        child: Card(
+          elevation: 4,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          color: const Color.fromARGB(255, 37, 50, 43),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                  child: recipe['image'] != null
+                      ? Image.network(
+                          recipe['image']!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            // Show a fallback UI if image fails to load
+                            return Container(
+                              color: Colors.grey[800],
+                              child: const Icon(Icons.broken_image, size: 40, color: Colors.white30),
+                            );
+                          },
+                        )
+                      : Container(
+                          color: Colors.grey[800],  // Placeholder background color
+                          child: const Icon(Icons.image_not_supported, size: 40, color: Colors.white30),
+                        ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                children:[
+                Text(
+                  recipe['title'] ?? 'No Title',
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  textAlign: TextAlign.center,
+                ),
+                Text(
+                  recipe['description'] ?? 'No Description',
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                  textAlign: TextAlign.center,
+              ),
+            ],),),
+            ],
+        ),
+      )
+      );
+    },
+  ),
+));
+  }
+}
+
+class LessonsPage extends StatelessWidget {
+  const LessonsPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(child: Text('Lessons Page'));
+  }
+}
+
+class FriendsPage extends StatelessWidget {
+  const FriendsPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(child: Text('Friends Page'));
+  }
+}
+
+class MePage extends StatelessWidget {
+  const MePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(child: Text('Me Page'));
+  }
+}
